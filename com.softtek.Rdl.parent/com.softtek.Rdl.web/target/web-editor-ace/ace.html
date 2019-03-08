@@ -1,0 +1,563 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta http-equiv="Content-Language" content="en-us">
+	<title>Example Web Editor - Ace</title>
+	<link rel="stylesheet" type="text/css" href="xtext/2.16.0/xtext-ace.css"/>
+	<link rel="stylesheet" type="text/css" href="style.css"/>
+	<script src="webjars/requirejs/2.3.2/require.min.js"></script>
+	
+	<style>
+		ul, #myUL {
+		  list-style-type: none;
+		}
+		
+		#myUL {
+		  margin: 0;
+		  padding: 0;
+		}
+		
+		.caret {
+		  cursor: pointer;
+		  -webkit-user-select: none; /* Safari 3.1+ */
+		  -moz-user-select: none; /* Firefox 2+ */
+		  -ms-user-select: none; /* IE 10+ */
+		  user-select: none;
+		}
+		
+		.caret::before {
+		  content: "\25B6";
+		  color: black;
+		  display: inline-block;
+		  margin-right: 6px;
+		}
+		
+		.caret-down::before {
+		  -ms-transform: rotate(90deg); /* IE 9 */
+		  -webkit-transform: rotate(90deg); /* Safari */'
+		  transform: rotate(90deg);  
+		}
+		
+		.nested {
+		  display: none;
+		}
+		
+		.active {
+		  display: block;
+		}
+		
+		.content {
+			width: 800px;
+		}
+		
+		.button-wrapper {
+			left: 840px;
+		}
+		
+		div[class*="ace_print-margin"] {
+			left: 691.825px;
+			visibility: visible;
+		}
+	</style>	
+	
+	<script type="text/javascript">
+		var baseUrl = window.location.pathname;
+		var fileIndex = baseUrl.indexOf("ace.html");
+		if (fileIndex > 0)
+			baseUrl = baseUrl.slice(0, fileIndex);
+		
+		require.config({
+			baseUrl: baseUrl,
+			paths: {
+				"text": "webjars/requirejs-text/2.0.10-3/text",
+				"xtext/xtext": "xtext/2.9.0.beta2/xtext",
+				
+				"jquery": "webjars/jquery/2.2.4/jquery.min",
+				"ace/ext/language_tools": "webjars/ace/1.2.3/src/ext-language_tools",
+				"xtext/xtext-ace": "xtext/2.16.0/xtext-ace"
+			}
+		});
+		
+		require(["webjars/ace/1.2.3/src/ace"], function() {	
+			require(["xtext/xtext-ace"], function(xtext) {
+				var editor = xtext.createEditor({
+					baseUrl: baseUrl,
+					syntaxDefinition: "xtext-resources/generated/mode-rdl"
+				});
+				
+				//Para obtener en formato json las anotaciones del web editor. (errores, etc...)
+				editor.getSession().setMode("ace/mode/json");
+
+				
+				$("#clone-button").bind("click", function(e) {
+					var urlClone = document.getElementById("inTxtRepoGit").value
+					
+					if( urlClone == null || urlClone.length == 0 ){
+						$("#git-label").html('<span style="font-size: 12px;">Error: No se ha indicado la ruta del repositorio</span>');
+					}else{
+						var selectedFile = $("#selected-file").val();
+			        	var changeFile = true;
+			        	
+			        	if( selectedFile != null && selectedFile.length > 0 ){
+			        		changeFile = confirm("¿Desea cambiar de archivo sin guardar cambios?");
+			        	}
+						
+						if( changeFile ){
+							disabledGitButtons();
+							$("#git-label").html('<span></span>');
+							$("#save-label").html('<span></span>');
+											
+							var data = {
+									resource: "Example1.rdl",
+									syntaxDefinition: "xtext-resources/generated/mode-rdl",
+									serviceType: 'occurrences',
+									fullText: editor.getValue(),
+									job: 'clone',
+									urlclone: urlClone 
+							 };
+							
+		                    jQuery.post('http://localhost:8080/web-editor-ace/xtext-service?job=clone&urlclone='+urlClone, data, function(result){
+								console.log("clone-button: Se ha clonado el proyecto. \n", result);
+								var already = result.indexOf('already exists');
+								if( already > -1 ){
+									$("#git-label").html('<span style="font-size: 12px;">'+result.substring(result.indexOf('myInit')+6, result.length)+'</span>');	
+								}else{
+									$("#myUL").empty();//Se elimina el contenido anterior del tree view
+									$("#myUL").append(result.substring(result.indexOf('<li'), result.length));
+									
+									$("#git-label").html('<span style="font-size: 12px;">'+result.substring(result.indexOf('myInit')+6, result.indexOf('<li')-1)+'</span>');
+									$("#inTxtFileName").val("");
+					        		$("#inTxtFileName").attr("disabled", "disabled");
+					        		$("#chkBoxNewRdl").attr("checked", false);
+					        		$("#selected-file").val("");
+					        		
+					        		cleanWebEditor();
+								}
+								
+								enabledGitButtons();
+							});							
+						}else{
+							console.log("Cancelando accion change file...");
+						}						
+					}
+				});
+				
+				$("#push-button").bind("click", function(e) {
+					var urlClone = document.getElementById("inTxtRepoGit").value
+					
+					if( urlClone == null || urlClone.length == 0 ){
+						$("#git-label").html('<span style="font-size: 12px;">Error: No se ha indicado la ruta del repositorio</span>');
+					}else{
+						var checkBoxNewRdl = $("#chkBoxNewRdl").prop("checked");
+						var pathFile = null;
+						
+						if( checkBoxNewRdl ){
+							pathFile = document.getElementById("inTxtFileName").value;
+						}else{
+							pathFile = document.getElementById("selected-file").value;
+						}						
+						
+						disabledGitButtons();
+						
+						$("#git-label").html('<span></span>');
+						$("#save-label").html('<span></span>');
+						
+						var user = document.getElementById("inTxtUser").value
+						var password = document.getElementById("inTxtPassword").value
+						
+						var data = {
+							resource: "Example1.rdl",
+							syntaxDefinition: "xtext-resources/generated/mode-rdl",
+							serviceType: 'occurrences',
+							fullText: editor.getValue(),
+							job: 'push',
+							urlclone: urlClone
+						};
+						
+						jQuery.post('http://localhost:8080/web-editor-ace/xtext-service?job=push&pathFile='+pathFile+'&urlclone='+urlClone+'&user='+user+'&password='+password, data, function(result){
+	                    	var conflict = result.indexOf('conflicts');
+							if( conflict > -1 ){
+								$("#myUL").empty();//Se elimina el contenido anterior del tree view
+								$("#myUL").append(result.substring(result.indexOf('<li'), result.length));
+								
+								$("#git-label").html('<span style="font-size: 12px;">'+result.substring(result.indexOf('myInit')+6, result.indexOf('<li')-1)+'</span>');
+							}else{
+								$("#git-label").html('<span style="font-size: 12px;">'+result.substring(result.indexOf('myInit')+6, result.length)+'</span>');
+							}
+							
+							enabledGitButtons();
+						});
+					}
+				});
+				
+				$("#refresh-button").bind("click", function(e) {
+					var selectedFile = $("#selected-file").val();
+		        	var changeFile = true;
+		        	
+		        	if( selectedFile != null && selectedFile.length > 0 ){
+		        		changeFile = confirm("¿Desea cambiar de archivo sin guardar cambios?");
+		        	}
+					
+					if( changeFile ){
+						disabledGitButtons();
+						$("#git-label").html('<span></span>');
+						$("#save-label").html('<span></span>');
+						
+						var urlClone = document.getElementById("inTxtRepoGit").value
+						
+						var data = {
+							resource: "Example1.rdl",
+							syntaxDefinition: "xtext-resources/generated/mode-rdl",
+							serviceType: 'occurrences',
+							fullText: editor.getValue(),
+							job: 'push',
+							urlclone: urlClone
+						};
+						
+	                    jQuery.post('http://localhost:8080/web-editor-ace/xtext-service?job=refresh&urlclone='+urlClone, data, function(result){
+							var conflict = result.indexOf('conflicts');
+							var errorPulling = result.indexOf('error: Pulling');
+							if( conflict > -1 || errorPulling > -1 ){
+								$("#myUL").empty();//Se elimina el contenido anterior del tree view
+								$("#myUL").append(result.substring(result.indexOf('<li'), result.length));
+								$("#git-label").html('<span style="font-size: 12px;">'+result.substring(result.indexOf('myInit')+6, result.indexOf('<li')-1)+'</span>');
+							}else{
+								$("#myUL").empty();//Se elimina el contenido anterior del tree view
+								$("#myUL").append(result.substring(result.indexOf('<li'), result.length));							
+								$("#git-label").html('<span style="font-size: 12px;">El proyecto se actualizo exitosamente...</span>');
+
+								$("#inTxtFileName").val("");
+				        		$("#inTxtFileName").attr("disabled", "disabled");			
+				        		$("#chkBoxNewRdl").attr("checked", false);
+							}
+							
+							enabledGitButtons();
+						});
+						
+	                    cleanWebEditor();						
+					}else{
+						console.log("Cancelando accion change file...");							
+					}	
+				});
+									
+				$("#save-button").bind("click", function(e) {
+					var webEditorAnnotations = editor.getSession().getAnnotations();
+					var webEditorErrors = false;
+
+					if( webEditorAnnotations == null || webEditorAnnotations.length == 0 ){
+						webEditorErrors = false;
+					}else{
+						for(var i=0; i<=webEditorAnnotations.length; i++){
+							if( webEditorAnnotations[i].type == "error" ){
+								webEditorErrors = true;
+								break;
+							}
+						}						
+					}
+							        	
+					if( webEditorErrors ){
+						$("#save-label").html('<span style="font-size: 12px;">Error: web editor con errores de sintaxis.</span>');
+					}else{
+						var checkBoxNewRdl = $("#chkBoxNewRdl").prop("checked");
+						var pathFile = null;
+						var isNewRdl = null;
+						
+						if( checkBoxNewRdl ){
+							pathFile = document.getElementById("inTxtFileName").value;
+							isNewRdl = true;
+						}else{
+							pathFile = document.getElementById("selected-file").value;
+							isNewRdl = false;
+						}
+						
+						
+						if( pathFile == null || pathFile == "" ){
+							$("#save-label").html('<span style="font-size: 12px;">No se ha indicado el nombre del archivo .rdl</span>');
+						}else{
+							disabledGitButtons();
+							
+							$("#git-label").html('<span></span>');
+							$("#save-label").html('<span></span>');					
+							
+							if( checkBoxNewRdl ){
+								pathFile = pathFile + ".rdl";
+							}
+							
+							var data = {
+								resource: "Example1.rdl",
+								syntaxDefinition: "xtext-resources/generated/mode-rdl",
+								serviceType: 'occurrences',
+								fullText: editor.getValue(),
+								job: 'save',
+								pathfile: document.getElementById("selected-file").value
+							};
+							
+							jQuery.post('http://localhost:8080/web-editor-ace/xtext-service?job=save&isNewRdl='+isNewRdl+'&pathfile='+pathFile+'&fullText='+encodeURIComponent(editor.getValue()), data, function(result){
+								console.log("save-button: Se ha guardado la informacion del archivo. \n", result);
+								
+								$("#myUL").empty();//Se elimina el contenido anterior del tree view
+								$("#myUL").append(result.substring(result.indexOf('<li'), result.length));							
+								
+								$("#save-label").html('<span style="font-size: 12px;">La informaci&#243;n se guardo exitosamente...</span>');								
+								$("#inTxtFileName").val("");
+				        		$("#inTxtFileName").attr("disabled", "disabled");			
+				        		$("#chkBoxNewRdl").attr("checked", false);
+								
+								enabledGitButtons();
+							});
+						}
+					}
+				});
+				
+				//Se activa con File chooser
+				$("#upload-button").click(function() {
+					 $("#git-label").html('<span></span>');
+					 $("#save-label").html('<span></span>');
+						
+					  var fileToLoad = document.getElementById("avatar").files[0];
+					  
+					  var fileReader = new FileReader();
+					  fileReader.onload = function(fileLoadedEvent){
+					      var textFromFileLoaded = fileLoadedEvent.target.result;
+					      editor.setValue(textFromFileLoaded);
+					      document.getElementById("xtext-editor").value = textFromFileLoaded;
+					  };
+
+					  fileReader.readAsText(fileToLoad, "UTF-8");
+				});					
+				
+				$("#uploadfile-button").bind("click", function(e) {
+					$("#git-label").html('<span></span>');
+					$("#save-label").html('<span></span>');
+						
+					var pathFile = $("#selected-file").val();
+					var data = {
+							resource: "Example1.rdl",
+							syntaxDefinition: "xtext-resources/generated/mode-rdl",
+							serviceType: 'occurrences',
+							fullText: editor.getValue(),
+							job: 'uploadfile'							
+					};
+					
+					jQuery.post('http://localhost:8080/web-editor-ace/xtext-service?job=uploadfile&pathfile='+pathFile, data, function(result){
+						var fileReader = new FileReader();
+						fileReader.onload = function(fileLoadedEvent){
+							var textFromFileLoaded = fileLoadedEvent.target.result;
+						  	editor.setValue(textFromFileLoaded);
+						  	document.getElementById("xtext-editor").value = textFromFileLoaded;
+						};
+						  
+						fileReader.readAsText(new Blob([result.substring(result.indexOf('myInit')+6, result.length)], {type: "text/plain"}), "UTF-8");
+					});
+					
+					jQuery.post('http://localhost:8080/web-editor-ace/xtext-service?job=markUploadSelectedFile&pathfile='+pathFile, data, function(result){
+						$("#myUL").empty();//Se elimina el contenido anterior del tree view
+						$("#myUL").append(result.substring(result.indexOf('<li'), result.length));							
+					});
+					
+				});
+				
+				$("#xtext-editor").bind("click", function(e) {
+					$("#git-label").html('<span></span>');
+					$("#save-label").html('<span></span>');
+				});				
+				
+				$("#login-button").bind("click", function(e) {
+					//cleanWebEditor();
+					window.location.href = 'http://localhost:8080/web-editor-ace/';
+				});
+				
+				$("#chkBoxNewRdl").bind("change", function(e) {
+					var selectedFile = $("#selected-file").val();
+		        	var changeFile = true;
+		        	
+		        	if( selectedFile != null && selectedFile.length > 0 ){
+		        		changeFile = confirm("¿Desea cambiar de archivo sin guardar cambios?");
+		        	}
+					
+		        	var checkBoxNewRdl = $("#chkBoxNewRdl").prop("checked");
+					if( changeFile ){
+			        	if( checkBoxNewRdl ){
+			        		$("#inTxtFileName").removeAttr("disabled");		        		
+			        	}else{
+			        		$("#inTxtFileName").attr("disabled", "disabled");
+			        	}
+			        	
+			        	$("#inTxtFileName").val("");
+			        	cleanWebEditor();
+					}else{
+						if( checkBoxNewRdl ){
+							$("#chkBoxNewRdl").prop("checked", false);//document.getElementById("chkBoxNewRdl").checked = false;
+						}else{
+							$("#chkBoxNewRdl").prop("checked", true);//document.getElementById("chkBoxNewRdl").checked = true;
+						}
+					}
+				});
+				
+			    $("#inTxtFileName").keydown(function(e){
+					switch (event.keyCode) {
+			            case 8:  // Backspace
+			            case 9:  // Tab
+			            case 13: // Enter
+			            case 37: // Left
+			            case 38: // Up
+			            case 39: // Right
+			            case 40: // Down
+			            break;
+			            default:
+				            var regex = new RegExp("^[a-zA-Z0-9-_,/ $@()]+$");
+				            var key = event.key;
+				            if (!regex.test(key)) {
+				                event.preventDefault();
+				                return false;
+				            }
+				            break;
+		        	}				    
+
+				});
+				
+		        function cleanWebEditor(){
+		            console.log("Iniciando cleanerWebEditor");
+		            
+					var fileReader = new FileReader();					
+					fileReader.onload = function(fileLoadedEvent){
+						var textFromFileLoaded = "";
+					  	editor.setValue(textFromFileLoaded);
+					  	document.getElementById("xtext-editor").value = textFromFileLoaded;
+					};					  
+					fileReader.readAsText(new Blob([""], {type: "text/plain"}), "UTF-8");
+					
+					console.log("Finalizando cleanerWebEditor");		
+		        }
+		        
+		        function findWebEditorErrors(){
+		        	var contentWebEditor = document.getElementById("xtext-editor").value;
+		        	var webEditorError = result.indexOf('ace_error');
+		        }
+		        
+			});
+		});
+
+        function loadSelectedFile(pathfile){
+        	console.log('Ejecutando funcion loadSelectedFile(pathfile) - ' + pathfile);
+        	document.getElementById("git-label").value = ""
+			document.getElementById("save-label").value = ""        	
+        	
+			var selectedFile = $("#selected-file").val();
+        	var changeFile = true;
+        	
+        	if( selectedFile != null && selectedFile.length > 0 && pathfile != selectedFile ){
+        		changeFile = confirm("¿Desea cambiar de archivo sin guardar cambios?");
+        	}
+			
+			if( changeFile && pathfile != selectedFile ){
+	        	$("#selected-file").val(pathfile);
+	        	$("#uploadfile-button").click();
+	        	$("#save-label").html("<span>...</span>");
+			}else{
+				console.log('Cancelando accion change File...');
+			}
+        	
+        }
+        
+        function getUserPassword(){
+        	var url = new URL(window.location.href);
+        	
+        	console.log("url: ", url);
+        	document.getElementById("inTxtUser").value = atob(url.searchParams.get("user"));
+        	document.getElementById("inTxtPassword").value = atob(url.searchParams.get("password"));
+        	
+        	if( document.getElementById("inTxtUser").value == "" || document.getElementById("inTxtPassword").value == "" ){
+        		alert("No autenticado.");
+        	}
+        	
+        	console.log("user", document.getElementById("inTxtUser").value);
+        	console.log("Password", document.getElementById("inTxtPassword").value);        	
+        }
+        
+        function disabledGitButtons(){
+        	document.getElementById("clone-button").disabled = true;
+        	document.getElementById("push-button").disabled = true;
+        	document.getElementById("refresh-button").disabled = true;        	
+        }
+        
+        function enabledGitButtons(){
+        	document.getElementById("clone-button").disabled = false;
+        	document.getElementById("push-button").disabled = false;
+        	document.getElementById("refresh-button").disabled = false;        	        	
+        }
+
+	</script>
+	
+</head>
+<body onload="getUserPassword();">
+	<div class="container">
+		<div class="header">
+			<h1 style="text-align: center;">Rdl web editor - ACE</h1>
+		</div>
+		<div class="content" >
+			<div id="xtext-editor" data-editor-xtext-lang="rdl" data-editor-resource-id="Example1.rdl"></div>
+		</div>	
+	</div>
+	
+	<div class="button-wrapper">
+		<div> 
+			<div id="botoneraGIT" style="border: 1px solid #A9A9A9; padding: 10px 10px 5px 10px; width: 460px; height: 80px;">
+				<label style="background: white; position: absolute; top: -8px; padding-left: 2px; margin-left: 10px; color: #A9A9A9">GIT</label>
+			
+				<div style="float: left;">
+					<input type="text" id="inTxtRepoGit" title="URL del repositorio a clonar" style="width: 375px; display: block;">
+			        <label id="git-label" style="color: #A9A9A9; width: 363px; height: 50px; padding-left: 10px; display: block; margin-top: 4px; border: 1px solid #A9A9A9;">...</label>
+				</div>
+			
+				<div id="botoneraGit" style="float: left;">
+					<button id="clone-button" value="Clone GIT" title="Boton para clonar proyecto GIT." style="margin: 0px; width: 80px; display: block; margin: 0px 0px 0px 5px;">Clone</button>
+					<button id="push-button" value="Push GIT" title="Boton para sincronizar los cambios del proyecto GIT." style="width: 80px; display: block; margin: 5px 0px 5px 5px;">Push</button>
+					<button id="refresh-button" value="Refresh" title="Boton para actualizar contenido de directorio." style="width: 80px; display: block; margin: 0px 0px 0px 5px;">Refresh</button>
+				</div>			
+			</div>
+		</div>	
+		<!--br-->
+		<div style="border: 1px solid #A9A9A9;padding: 5px 10px 5px 10px; width: 460px; height: 20px;">
+			<input id="inTxtFileName" type="text" name="file-name" value="" title="Proporcione el nombre del RDL sin extension." style="width: 375px;" disabled="disabled"/>
+			<span style="font-size: 11px;">Create RDL</span><input id="chkBoxNewRdl" type="checkbox" name="create new RDL" value="Create new RDL" />
+		</div>
+		<div style="border: 1px solid #A9A9A9;padding: 5px 10px 5px 10px; width: 460px; height: 20px;">
+			<label id="save-label" style="color: #A9A9A9; width: 365px; padding-left: 10px; display: inline-block;"><span id="span-save-label" hidden>...</span></label>
+			<p align="right" style="margin: 0px; display: inline-block;">
+				<button id="save-button" value="Save" title="Save" style="width: 80px;">Save</button>
+			</p>
+		</div>
+		<div id="foo" style="width: 480px; height: 320px; overflow-y: scroll; border: 1px solid #A9A9A9;">			
+			<button id="uploadfile-button" value="Upload File" title="Carga contenido de archivo seleccionado en el editor." hidden="true">Upload</button>
+			<input id="selected-file" type="text" name="selected-file" value="" hidden="true" />
+			<!--input id="chkBoxClonedProject" type="checkbox" name="is-cloned-project" value="Is cloned project" hidden="true" /--> 
+			<input id="inTxtUser" type="text" hidden="true" />
+			<input id="inTxtPassword" type="text" hidden="true" />	
+			<ul id="myUL"></ul>
+		</div>	
+		<br>
+		<div style="border: 1px solid #A9A9A9;padding: 5px 10px 5px 10px; width: 460px; height: 20px;">
+			<label id="login-label" style="color: #A9A9A9; width: 365px; padding-left: 10px; display: inline-block;">...</label>
+			<p align="right" style="margin: 0px; display: inline-block;">
+				<button id="login-button" value="Login" title="Active Login with dblClick" style="width: 80px;">Login</button>
+			</p>
+		</div>		
+	</div>
+
+	<script>
+		function displayUL(){
+			var toggler = document.getElementsByClassName("caret");
+			var i;
+			
+			console.log("toggler.length: " + toggler.length);
+			for (i = 0; i < toggler.length; i++) {
+			  toggler[i].addEventListener("click", function() {
+			    this.parentElement.querySelector(".nested").classList.toggle("active");
+			    this.classList.toggle("caret-down");
+			  });
+			}
+		}		
+	</script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta http-equiv="Content-Language" content="en-us">
+	<title>Example Web Editor</title>
+	<link rel="stylesheet" type="text/css" href="xtext/2.16.0/xtext-ace.css"/>
+	<link rel="stylesheet" type="text/css" href="style.css"/>
+	<script src="webjars/requirejs/2.3.2/require.min.js"></script>
+	<script type="text/javascript">
+		var baseUrl = window.location.pathname;
+		var fileIndex = baseUrl.indexOf("codemirror.html");
+		if (fileIndex > 0)
+			baseUrl = baseUrl.slice(0, fileIndex);
+		
+		
+		require.config({
+			baseUrl: baseUrl,
+			paths: {
+				"jquery": "webjars/jquery/2.2.4/jquery.min"
+			},
+			packages: [{
+				name: "codemirror",
+				location: "webjars/codemirror/5.13.2",
+				main: "lib/codemirror"
+			}]
+		});
+		require(["xtext/cm-mode-statemachine", "xtext/xtext-codemirror"], function(mode, xtext) {
+			xtext.createEditor({
+				baseUrl: baseUrl,
+				syntaxDefinition: "xtext-resources/generated/mode-rdl"
+			});
+		});
+	</script>
+</head>
+<body>
+
+<div class="container">
+	<div class="header">
+		<h1>Rdl Web Editor - Codemirror</h1>
+	</div>
+	<div class="content">
+		<div id="xtext-editor" data-editor-xtext-lang="rdl"></div>
+	</div>	
+</div>
+
+</body>
+</html>

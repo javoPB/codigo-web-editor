@@ -1,0 +1,443 @@
+/*
+ * Authors: Edgar Felipe Fuentes Perea y Marco Polo Pérez Cervantes
+ * Date: 2018 March
+ * 
+ * Softtek's RDL (Requirement Definition Language) Domain Entities Grammar
+ * Version 1.0
+ */
+ 
+grammar com.softtek.Rdl with org.eclipse.xtext.common.Terminals
+
+generate rdl "http://www.softtek.com/Rdl"
+
+Model:
+  module = Module
+;
+
+Module:
+ 'module' name = QualifiedName '{'
+   (elements += AbstractElement)*
+ '}'
+;
+
+@Override 
+terminal ID: 
+    ('a'..'z'|'A'..'Z') ('a'..'z'|'A'..'Z'|'0'..'9')*; 
+
+QualifiedName:
+  ID ('.' ID)*
+;
+
+QualifiedNameWithWildcard:
+  QualifiedName '.*'?
+;
+
+AbstractElement:
+	( Enum | Entity) 
+;
+	
+Enum:
+	'enum' name=ID '{'
+		(enum_literals += EnumLiteral)+
+	'}'
+;
+
+EnumLiteral:
+	key=ID ':' value=STRING
+;
+
+Entity:
+	'entity' name=ID '{'
+	    (actions = Actions)?
+	    (glossary = Glossary)?
+	    (db_map = DBMapEntity)?
+		(entity_fields += EntityField)+
+	    (entity_methods += MethodDeclaration)*
+	'}'
+;
+
+MethodDeclaration:
+ 	'def' name=ID '{'
+ 		( def_statements += Statement )+
+	'}'
+;
+
+Statement:
+	StatementReturn
+;
+
+StatementReturn:
+	'return' entityfield=[EntityField|QualifiedName]
+;
+
+EntityField:
+	EntityReferenceField |
+	EntityTextField      |
+	EntityLongTextField  |
+	EntityDateField      |
+	EntityImageField     |
+	EntityFileField      |
+	EntityEmailField     |
+	EntityDecimalField   |
+	EntityIntegerField   |
+	EntityCurrencyField
+;
+
+EntityTextConstraintDef:
+	'constraints' '(' constraints += EntityTextConstraint (',' constraints += EntityTextConstraint)* ')'
+;
+
+EntityTextConstraint:
+	ConstraintRequired |
+	ConstraintUnique   |
+	ConstraintMaxLength|
+	ConstraintMinLength
+;
+
+EntityTextField:
+	'field' name=ID ':' 'Text'
+	  ('{'
+	      (attrs += EntityTextFieldAttr)+
+	   '}')?
+;
+
+EntityTextFieldAttr:
+	//numberofvalues   = NumberOfValues         |
+	glossary         = Glossary               |
+	widget           = WidgetText             |
+	constraint       = EntityTextConstraintDef|
+	db_map           = DBMapField             |
+	data_domain      = DataDomain             |
+	business_rule    = BusinessRule
+;
+
+
+EntityLongTextField:
+	'field' name=ID ':' 'LongText'
+	('{'
+	  (attrs += EntityLongTextFieldAttr)+
+	'}')?
+;
+
+EntityLongTextFieldAttr:
+	glossary         = Glossary                |
+	widget           = Widget                  |
+	constraint       = EntityTextConstraintDef |
+	db_map           = DBMapField              |
+	data_domain      = DataDomain              |
+	business_rule    = BusinessRule
+;
+
+EntityDateField:
+	'field' name=ID ':' 'Date'
+	('{'
+	  (attrs += EntityDateFieldAttr)+
+	'}')?
+;
+
+EntityDateFieldAttr:
+   'default' ':' default=DATE                  |
+	glossary         = Glossary                |
+	widget           = WidgetDate              |
+	constraint       = EntityTextConstraintDef |
+	db_map           = DBMapField              |
+	data_domain      = DataDomain              |
+	business_rule    = BusinessRule
+;
+
+EntityReferenceField:
+	'reference' name=ID ':' superType=[EnumEntity|QualifiedName] '[' lowerBound=INT '..' upperBound=CardinalityUpperBound ']' ('opposite-of' opposite=[EntityReferenceField|QualifiedName])?
+    ('{'
+   	  (attrs += EntityReferenceFieldAttr)+
+    '}')?
+;  
+
+CardinalityUpperBound:
+	INT | '*'
+;
+
+EntityReferenceFieldAttr:
+	glossary         = Glossary                |
+	widget           = WidgetEnum              |
+	constraint       = EntityTextConstraintDef |
+	db_map           = DBMapField              |
+	data_domain      = DataDomain              |
+	business_rule    = BusinessRule
+;
+
+EnumEntity:
+	Enum | Entity
+;
+EntityImageField:
+	'field' name=ID ':' 'Image'
+	('{'
+	  (attrs += EntityAttr)+
+	'}')?
+;
+
+EntityFileField:
+	'field' name=ID ':' 'File'
+	('{'
+	  (attrs += EntityAttr)+
+	'}')?
+;
+
+EntityEmailField:
+	'field' name=ID ':' 'Email'
+	('{'
+	  (attrs += EntityAttr)+
+	'}')?
+;
+
+EntityDecimalField:
+	'field' name=ID ':' 'Decimal'
+	('{'
+	  (attrs += EntityAttr)+
+	'}')?
+;
+
+EntityIntegerField:
+	'field' name=ID ':' 'Integer'
+	('{'
+	 (attrs += EntityAttr)+
+	'}')?
+;
+
+EntityCurrencyField:
+	'field' name=ID ':' 'Currency'
+	('{'
+	  (attrs += EntityAttr)+
+	'}')?
+;
+
+EntityAttr:
+	glossary         = Glossary                |
+	widget           = Widget                  |
+	constraint       = EntityTextConstraintDef |
+	db_map           = DBMapField              |
+	data_domain      = DataDomain              |
+	business_rule    = BusinessRule
+;
+
+ConstraintRequired:
+	'required' ':' value=('true' | 'false')
+;
+
+ConstraintUnique:
+	'unique' ':' value=('true' | 'false')
+;
+
+ConstraintMaxLength:
+	'max_length' ':' value=INT
+;
+
+ConstraintMinLength:
+	'min_length' ':' value=INT
+;
+
+
+//Glossary
+Glossary :
+	'glossary' '('
+	     glossary_name        = GlossaryName
+	     ','
+	     glossary_description = GlossaryDescription
+	     //attrs += GlosaryAttr (',' attrs += GlosaryAttr)* 
+	 ')'
+;
+
+GlossaryName:
+	'name' ':' label= STRING
+;
+
+GlossaryDescription:
+	'description' ':' label= STRING
+;
+
+WidgetLabel:
+	'label' ':' label= STRING
+;
+
+WidgetHelp:
+	'help'  ':' help = STRING 
+;
+
+WidgetExposedFilter:
+	'exposed_filter'  ':' exposed_filter = ('true' | 'false') 
+;
+
+WidgetType:
+	'type'  ':' type = ('Option'| 'Check' | 'Autocomplete')
+;
+
+WidgetTypeSelect:
+	'type'  ':' type = 'SelectList' 
+;
+
+
+WidgetSortBy:
+	'sort_by'  ':' sortby = ID 
+;
+
+WidgetStartYear :
+	{WidgetStartYear} 'start_year_from_now' ':' start= '-'? '+'? INT
+;
+
+WidgetEndYear :
+	{WidgetEndYear} 'end_year_from_now' ':' end='-'? '+'? INT
+;
+
+Widget :
+	widget='widget' '(' attrs += WidgetAttr (',' attrs += WidgetAttr)* ')'
+;
+
+WidgetEnum :
+	widget='widget' '(' attrs += WidgetAttrEnum (',' attrs += WidgetAttrEnum)* ')'
+;
+
+WidgetDate :
+	widget='widget' '(' attrs += WidgetAttrDate (',' attrs += WidgetAttrDate)* ')'
+;
+
+WidgetText :
+	widget='widget' '(' attrs += WidgetAttrText (',' attrs += WidgetAttrText)* ')'
+;
+
+
+WidgetAttr:
+	WidgetLabel |
+	WidgetHelp  |
+	WidgetExposedFilter|
+	WidgetDisplayResult
+;
+
+WidgetAttrEnum:
+	WidgetAttrEnumType |
+	WidgetAttrEnumTypeSelect|
+	WidgetDisplayResult
+;
+
+WidgetAttrEnumType:
+	WidgetLabel |
+	WidgetHelp  |
+	WidgetExposedFilter |
+	WidgetType 
+;
+
+WidgetAttrEnumTypeSelect:
+	WidgetTypeSelect 
+	(',' sortby = WidgetSortBy)?
+;
+
+WidgetAttrDate:
+	WidgetLabel |
+	WidgetHelp  |
+	WidgetExposedFilter |
+	WidgetStartYear |
+	WidgetEndYear |
+	WidgetDisplayResult
+;
+
+WidgetAttrText:
+	WidgetLabel |
+	WidgetHelp  |
+	WidgetExposedFilter |
+	WidgetSize |
+	WidgetDisplayResult
+;
+
+
+WidgetSize:
+	'size'  ':' type = WidgetSizeType 
+;
+
+WidgetSizeType:
+	'XS' |'SM'  |'MD' |'LG' | 'XL'
+;
+
+WidgetDisplayResult:
+   'display_result' ':'  display_result= ('true'| 'false')
+;
+//Types
+BOOLEAN :
+	'true' | 'false'
+;
+
+DATE:
+	{DATE} (date=DATETIME)| now='Now' 
+;
+
+MONTH : 'Jan'|'Feb'|'Mar'|'Apr'|'May'|'Jun'|'Jul'|'Aug'|'Sep'|'Oct'|'Nov'|'Dec';
+
+
+
+ActionSearch:
+   'search' ':' value = ('Simple' | 'Complex' | 'None' )
+;
+
+ActionAdd:
+   'add'  ':'   value = ('true' | 'false')
+;
+
+ActionEdit:
+   'edit' ':'   value = ('true' | 'false') 
+;
+
+ActionDelete:
+   'delete' ':' value = ('true' | 'false')
+;
+  
+Action:
+	ActionSearch |
+	ActionAdd    |
+	ActionEdit   |
+	ActionDelete 
+;
+
+Actions:
+ 'scaffold' '(' action += Action (',' action += Action)* ')'
+;
+
+terminal DATETIME :
+	 ('0'..'9')('0'..'9')('0'..'9')('0'..'9')
+	 ('-'|'/')
+	 ('0'..'9')('0'..'9')
+	 ('-'|'/')
+	 ('0'..'9')('0'..'9')
+	 (' '
+	  ('0'..'9')('0'..'9')
+	  ':'
+	  ('0'..'9')('0'..'9')
+	  ':'
+	  ('0'..'9')('0'..'9'))?
+;
+
+DBMapEntity: 
+	 'db_map' '('
+	 'table'  ':' table=STRING (')'|','
+	 dbmap_attrs += DBMapAttr (',' dbmap_attrs += DBMapAttr)* ')')
+;
+
+DBMapAttr:
+	DBMapAttrIdentity | DBMapAttrAutoId
+;
+DBMapAttrIdentity:
+	'identity' ':' identity= STRING	
+;
+
+DBMapAttrAutoId:
+	'auto_id' ':' autoid= ('true'|'false')	
+;
+
+DBMapField: 
+	'db_map' '(' 'field'  ':' table=STRING 
+	 (')' | ',' 'pk' ':' pk=('true'|'false') ')')
+;
+
+DataDomain:
+	'data' '(' 'domain' ':' domain=STRING ')'
+;
+
+BusinessRule:
+    'business_rule' '(' 'code' ':' code=STRING ',' 'description' ':' description=STRING ')'
+;

@@ -1,0 +1,10 @@
+com\softtek\ide\contentassist\antlr\internal\InternalRdlLexer.class
+com\softtek\ide\RdlIdeModule.class
+com\softtek\ide\contentassist\antlr\internal\InternalRdlParser.class
+com\softtek\ide\contentassist\antlr\RdlParser$NameMappings.class
+com\softtek\ide\contentassist\antlr\RdlParser.class
+com\softtek\ide\contentassist\antlr\PartialRdlContentAssistParser.class
+com\softtek\ide\RdlIdeSetup.class
+com\softtek\ide\contentassist\antlr\internal\InternalRdlLexer$DFA12.class
+com\softtek\ide\AbstractRdlIdeModule.class
+com\softtek\ide\contentassist\antlr\internal\InternalRdlParser$DFA2.class

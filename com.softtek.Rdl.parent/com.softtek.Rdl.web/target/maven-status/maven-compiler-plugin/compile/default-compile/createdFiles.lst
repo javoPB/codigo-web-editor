@@ -1,0 +1,6 @@
+com\softtek\web\RdlWebSetup.class
+com\softtek\web\AbstractRdlWebModule.class
+com\softtek\web\ServerLauncher.class
+com\softtek\web\RdlWebModule.class
+com\softtek\web\util\UtilGIT.class
+com\softtek\web\RdlServlet.class

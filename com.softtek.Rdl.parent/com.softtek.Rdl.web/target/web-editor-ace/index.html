@@ -1,0 +1,47 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta http-equiv="Content-Language" content="en-us">
+	<title>Example Web Editor</title>
+	<script src="webjars/requirejs/2.3.2/require.min.js"></script>
+	
+	<script type="text/javascript">
+		function getUrlAce(){
+			var user = document.getElementById("inTxtUser").value;
+			var password = document.getElementById("inTxtPassword").value;
+			
+			if( (user === null || user === "") || (password === null || password === "") ){
+				alert("user y/o password incorrectos.");
+			}else{
+				window.location.href = './ace.html?user=' + btoa(user) + '&password=' + btoa(password);				
+			}
+		}
+	
+	</script>
+</head>
+
+<body>
+	<div class="container" style="text-align: center;">
+		<div style="border: 0px solid red; text-align: center; display: inline-block;">
+			<h1>WEB EDITOR - OPTIONS</h1>
+			
+			<div style="border: 1px solid #A9A9A9; padding: 20px;">
+				<div>
+					<label style="padding-left: 30px;">user:  </label>
+					<input type="text" id="inTxtUser" title="User" style="width: 275px;" />			
+				</div>
+				<br>
+				<div>
+					<label>Password: </label>
+					<input type="password" id="inTxtPassword" title="Password" style="width: 275px;" required />			
+				</div>
+			</div>
+			
+			<br>
+			<input id="btnOrion" type="button" onclick="location.href='./orion.html';" value="Orion" />
+			<input id="btnAce" type="button" onclick="getUrlAce();" value="Ace" />
+			<input id="btnCodeMirror" type="button" onclick="location.href='./codemirror.html';" value="CodeMirror" />
+		</div>
+	</div>
+</body>
+</html> 

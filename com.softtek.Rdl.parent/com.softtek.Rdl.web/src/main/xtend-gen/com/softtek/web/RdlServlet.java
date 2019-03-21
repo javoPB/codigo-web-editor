@@ -6,6 +6,7 @@ package com.softtek.web;
 import com.google.inject.Injector;
 import com.softtek.web.RdlWebSetup;
 import com.softtek.web.util.UtilGIT;
+import java.io.File;
 import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -62,8 +63,8 @@ public class RdlServlet extends XtextServlet {
    */
   @Override
   protected void service(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
-    final String pathDirectoryProject = "C:\\Users\\javier.perezb\\Desktop\\temporal\\temporal222";
-    final String pathLogFile = "C:\\Users\\javier.perezb\\Desktop\\temporal\\log.txt";
+    final String pathDirectoryProject = (((File.separator + "src") + File.separator) + "rdl-directory");
+    final String pathLogFile = (((((File.separator + "src") + File.separator) + "logs") + File.separator) + "log.txt");
     try {
       super.service(req, resp);
       final HttpServiceContext serviceContext = new HttpServiceContext(req);

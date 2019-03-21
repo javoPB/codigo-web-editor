@@ -7,8 +7,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.PatternSyntaxException;
 
 
@@ -16,6 +18,7 @@ public class UtilGIT {
 	private String treeView = null;
 	private List<String> conflictedFiles = null;
 	private String uploadSelectedFile = null;
+	private String pathDirectoryBash = File.separator+"src"+File.separator+"bash"+File.separator;
 	
 	public String uploadTreeView(String pathDirectoryProject, List<String> conflictedFiles, String uploadSelectedFile) {
 		File folder = null;
@@ -25,11 +28,11 @@ public class UtilGIT {
 			this.uploadSelectedFile = uploadSelectedFile.replace("\\", "\\\\");
 		}
 		
-		System.out.println("Iniciando executorCloneBASH(...)");
+		System.out.println("Iniciando uploadTreeView(...)");
 		folder = new File(pathDirectoryProject);
 		
 		this.printFile(folder, "");		
-		System.out.println("Finalizando executorCloneBASH(...)");
+		System.out.println("Finalizando uploadTreeView(...)");
 		
 		return treeView;
 	}
@@ -101,19 +104,34 @@ public class UtilGIT {
 	}
 	
 	public String executorCloneBASH(String urlClone, String pathDirectoryProject, String pathLogFile) {
+		String operatingSystem = System.getProperty("os.name").toLowerCase();
 		Runtime runtime = Runtime.getRuntime();
 		String msgClone = "";
 		
 		try {
-			System.out.println("Iniciando executorCloneBASH(...)");
+			System.out.println("Iniciando executorCloneBASH(...) - Sobre sistema operativo: " + operatingSystem);
 			
+			/**
 			Process p1 = runtime.exec("cmd /c start C:/Users/javier.perezb/Desktop/cloneGit.sh " + urlClone + " " + pathDirectoryProject + " " + pathLogFile);
 			msgClone = this.validateLogExecution(pathLogFile, "cloneEndFileLog.txt");
 			System.out.println("****msgClone: " + msgClone);
+			*/
+			
+			if( operatingSystem.contains("win") ){
+				Process process = runtime.exec("cmd /c cloneGit.sh " + urlClone + " " + pathDirectoryProject + " " + pathLogFile, null, new File(this.pathDirectoryBash));
+			}else {
+				Process process = runtime.exec("sh -c cloneGit.sh " + urlClone + " " + pathDirectoryProject + " " + pathLogFile, null, new File(this.pathDirectoryBash));
+			}
+			
+			System.out.println("Iniciando proceso de verificacion de existencia del LOG.");
+			//El segundo parametro sirve para identificar el final del log generado al clonar.
+			msgClone = this.validateLogExecution(pathLogFile, "cloneEndFileLog.txt");
 			
 			System.out.println("Finalizando executorCloneBASH(...)");		    
 		} catch(IOException ioException) {
 			ioException.printStackTrace();
+		} catch(Exception exception) {
+			exception.printStackTrace();
 		}
 		
 		return msgClone;

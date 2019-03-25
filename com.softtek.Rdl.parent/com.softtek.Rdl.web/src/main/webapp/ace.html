@@ -350,11 +350,19 @@
 						fileReader.readAsText(new Blob([result.substring(result.indexOf('myInit')+6, result.length)], {type: "text/plain"}), "UTF-8");
 					});
 					
+					/*
 					jQuery.post('http://localhost:8080/web-editor-ace/xtext-service?job=markUploadSelectedFile&pathfile='+pathFile, data, function(result){
 						$("#myUL").empty();//Se elimina el contenido anterior del tree view
 						$("#myUL").append(result.substring(result.indexOf('<li'), result.length));							
 					});
-					
+					*/
+					var id = ""
+					if( pathFile.indexOf('.') >= 0 ){
+						id = pathFile.replace(/\\/g, "-").substring(0, pathFile.indexOf('.'));
+					}else{
+						var id = pathFile.replace(/\\/g, "-");
+					}
+					$("#"+id).css("color", "#900C3F");					
 				});
 				
 				$("#xtext-editor").bind("click", function(e) {
@@ -448,6 +456,25 @@
         	
         	if( selectedFile != null && selectedFile.length > 0 && pathfile != selectedFile ){
         		changeFile = confirm("¿Desea cambiar de archivo sin guardar cambios?");
+        		if( changeFile ){
+					var id = ""
+					var temp = selectedFile;
+					
+					if( temp.indexOf('.') >= 0 ){
+						if( temp.indexOf('\\') >= 0 ){
+							id = temp.replace(/\\/g, "-").substring(0, temp.indexOf('.'));	
+						}else{
+							id = temp.replace(/\//g, "-").substring(0, temp.indexOf('.'));
+						}
+					}else{
+						if( temp.indexOf('\\') >= 0 ){
+							var id = temp.replace(/\\/g, "-");	
+						}else{
+							var id = temp.replace(/\//g, "-");
+						}
+					}
+					$("#"+id).css("color", "#2222AA");
+        		}
         	}
 			
 			if( changeFile && pathfile != selectedFile ){
@@ -550,7 +577,7 @@
 			var toggler = document.getElementsByClassName("caret");
 			var i;
 			
-			console.log("toggler.length: " + toggler.length);
+			//console.log("toggler.length: " + toggler.length);
 			for (i = 0; i < toggler.length; i++) {
 			  toggler[i].addEventListener("click", function() {
 			    this.parentElement.querySelector(".nested").classList.toggle("active");

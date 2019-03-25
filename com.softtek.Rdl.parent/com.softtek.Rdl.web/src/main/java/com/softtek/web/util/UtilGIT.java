@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.URL;
 import java.util.ArrayList;
@@ -13,22 +14,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.PatternSyntaxException;
 
+import javax.management.ObjectInstance;
+
 
 public class UtilGIT {
 	private String treeView = null;
 	private List<String> conflictedFiles = null;
 	private String uploadSelectedFile = null;
 	private String pathDirectoryBash = File.separator+"src"+File.separator+"bash"+File.separator;
+	private String operatingSystem = System.getProperty("os.name").toLowerCase();
+	private static final String DBL_FILE_SEPARATOR = File.separator+File.separator;
 	
 	public String uploadTreeView(String pathDirectoryProject, List<String> conflictedFiles, String uploadSelectedFile) {
 		File folder = null;
 		this.treeView = "";
 		this.conflictedFiles = conflictedFiles;
 		if( uploadSelectedFile != null && !uploadSelectedFile.isEmpty() ) {
-			this.uploadSelectedFile = uploadSelectedFile.replace("\\", "\\\\");
+			//this.uploadSelectedFile = uploadSelectedFile.replace("\\", "\\\\");
+			this.uploadSelectedFile = uploadSelectedFile.replace(File.separator, DBL_FILE_SEPARATOR);
 		}
 		
-		System.out.println("Iniciando uploadTreeView(...)");
+		System.out.println("Iniciando uploadTreeView(...) - pathDirectoryProject: " + pathDirectoryProject);
 		folder = new File(pathDirectoryProject);
 		
 		this.printFile(folder, "");		
@@ -47,9 +53,11 @@ public class UtilGIT {
 	}
 	
 	public void printFile(File file, String tab) {
+		System.out.println("file: " + file);
+		
 		if( file.isDirectory() ) {
 			File[] listOfFiles = file.listFiles();
-			//System.out.println(tab + ">" + file.getName());
+			System.out.println(tab + ">" + file.getName());
 			treeView += "<li onclick=\"displayUL();\"><span class=\"caret\">"+file.getName()+"</span>"+"\n";
 			treeView += "<ul class=\"nested\">"+"\n";
 						
@@ -57,14 +65,27 @@ public class UtilGIT {
 				if( f.isDirectory() ) {
 					printFile(f, tab + "  ");
 				}else {
-					//System.out.println(tab + "  -" + file.getPath() + f.getName());
-					if( this.isConflictedFile(file.getPath().replace("\\", "\\\\")+"\\\\"+f.getName()) ) {
-						treeView += "<li><a onclick=\"loadSelectedFile('"+file.getPath().replace("\\", "\\\\")+"\\\\"+f.getName()+"')\" href=\"#\" style=\"color: red;\">"+f.getName()+"</a></li>"+"\n";
+					//String fileName = file.getPath().replace("\\", "\\\\")+"\\\\"+f.getName();
+					String fileName = file.getPath().replace(File.separator, DBL_FILE_SEPARATOR)+DBL_FILE_SEPARATOR+f.getName();
+					String id = null;
+					if( f.getName().indexOf(".") >= 0 ) {
+						//id = file.getPath().replace("\\", "-")+"-"+f.getName().substring(0, f.getName().indexOf("."));
+						id = file.getPath().replace(File.separator, "-")+"-"+f.getName().substring(0, f.getName().indexOf("."));
 					}else {
-						if( isSelectedFile(file.getPath().replace("\\", "\\\\")+"\\\\"+f.getName()) ){
-							treeView += "<li><a onclick=\"loadSelectedFile('"+file.getPath().replace("\\", "\\\\")+"\\\\"+f.getName()+"')\" href=\"#\" style=\"color: #900C3F;\">"+f.getName()+"</a></li>"+"\n";
+						//id = file.getPath().replace("\\", "-")+"-"+f.getName();
+						id = file.getPath().replace(File.separator, "-")+"-"+f.getName();
+					}
+					
+					System.out.println(tab + "  -" + file.getPath()+File.separator+ f.getName() + " -- id: " + id);
+					
+					if( this.isConflictedFile(fileName) ) {
+						treeView += "<li><a id=\""+id+"\" onclick=\"loadSelectedFile('"+fileName+"')\" href=\"#\" style=\"color: red;\">"+f.getName()+"</a></li>"+"\n";
+					}else {
+						//if( isSelectedFile(file.getPath().replace("\\", "\\\\")+"\\\\"+f.getName()) ){
+						if( isSelectedFile(file.getPath().replace(File.separator, DBL_FILE_SEPARATOR)+DBL_FILE_SEPARATOR+f.getName()) ){
+							treeView += "<li><a id=\""+id+"\" onclick=\"loadSelectedFile('"+fileName+"')\" href=\"#\" style=\"color: #900C3F;\">"+f.getName()+"</a></li>"+"\n";
 						}else {
-							treeView += "<li><a onclick=\"loadSelectedFile('"+file.getPath().replace("\\", "\\\\")+"\\\\"+f.getName()+"')\" href=\"#\">"+f.getName()+"</a></li>"+"\n";
+							treeView += "<li><a id=\""+id+"\" onclick=\"loadSelectedFile('"+fileName+"')\" href=\"#\">"+f.getName()+"</a></li>"+"\n";
 						}
 					}					
 				}
@@ -75,12 +96,43 @@ public class UtilGIT {
 		}
 	}
 	
+	/**
+	 * Imprime mensajes de la ejecución de los procesos bash.
+	 * @param process
+	 */
+	private void printProcessBash(Process process) {
+		String line;
+		
+		try {
+			BufferedReader error = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+			while((line = error.readLine()) != null){
+				System.out.println(line);
+			}
+			error.close(); 
+	
+			BufferedReader input = new BufferedReader(new InputStreamReader(process.getInputStream()));
+			while((line=input.readLine()) != null){
+				System.out.println(line);
+			}
+	
+			input.close();
+	
+			OutputStream outputStream = process.getOutputStream();
+			PrintStream printStream = new PrintStream(outputStream);
+			printStream.println();
+			printStream.flush();
+			printStream.close();
+		}catch(IOException e) {
+			System.out.println("Error: " + e.getMessage());
+		}
+	}
+	
 	private boolean isSelectedFile(String file) {
 		boolean eureka = false;
 		
 		if( this.uploadSelectedFile != null ) {
 			if( file.equals(uploadSelectedFile) ) {
-				System.out.println("file: " + file + "\t uploadSelectedFile: " + uploadSelectedFile);
+				//System.out.println("file: " + file + "\t uploadSelectedFile: " + uploadSelectedFile);
 				eureka = true;
 			}
 		}
@@ -104,26 +156,21 @@ public class UtilGIT {
 	}
 	
 	public String executorCloneBASH(String urlClone, String pathDirectoryProject, String pathLogFile) {
-		String operatingSystem = System.getProperty("os.name").toLowerCase();
 		Runtime runtime = Runtime.getRuntime();
+		Process process = null;
 		String msgClone = "";
 		
 		try {
 			System.out.println("Iniciando executorCloneBASH(...) - Sobre sistema operativo: " + operatingSystem);
 			
-			/**
-			Process p1 = runtime.exec("cmd /c start C:/Users/javier.perezb/Desktop/cloneGit.sh " + urlClone + " " + pathDirectoryProject + " " + pathLogFile);
-			msgClone = this.validateLogExecution(pathLogFile, "cloneEndFileLog.txt");
-			System.out.println("****msgClone: " + msgClone);
-			*/
-			
 			if( operatingSystem.contains("win") ){
-				Process process = runtime.exec("cmd /c cloneGit.sh " + urlClone + " " + pathDirectoryProject + " " + pathLogFile, null, new File(this.pathDirectoryBash));
+				process = runtime.exec("cmd /c cloneGit.sh " + urlClone + " " + pathDirectoryProject + " " + pathLogFile, null, new File(this.pathDirectoryBash));
 			}else {
-				Process process = runtime.exec("sh -c cloneGit.sh " + urlClone + " " + pathDirectoryProject + " " + pathLogFile, null, new File(this.pathDirectoryBash));
+				process = runtime.exec("./cloneGit.sh " + urlClone + " " + pathDirectoryProject + " " + pathLogFile, null, new File(this.pathDirectoryBash));
 			}
 			
-			System.out.println("Iniciando proceso de verificacion de existencia del LOG.");
+			printProcessBash(process);
+			
 			//El segundo parametro sirve para identificar el final del log generado al clonar.
 			msgClone = this.validateLogExecution(pathLogFile, "cloneEndFileLog.txt");
 			
@@ -139,12 +186,22 @@ public class UtilGIT {
 	
 	public String executorPullBASH(String pathDirectoryProject, String pathLogFile) {
 		Runtime runtime = Runtime.getRuntime();
+		Process process = null;
 		String msgPull = "";
 		
 		try {			
 			System.out.println("Iniciando executorPullBASH(...)");
+
+			if( operatingSystem.contains("win") ){
+				//Process p1 = runtime.exec("cmd /c start C:/Users/javier.perezb/Desktop/pullGit.sh " + pathDirectoryProject + " " + pathLogFile);
+				process = runtime.exec("cmd /c pullGit.sh " + pathDirectoryProject + " " + pathLogFile, null, new File(this.pathDirectoryBash));
+			}else {
+				process = runtime.exec("./pullGit.sh " + pathDirectoryProject + " " + pathLogFile, null, new File(this.pathDirectoryBash));
+			}
 			
-		    Process p1 = runtime.exec("cmd /c start C:/Users/javier.perezb/Desktop/pullGit.sh " + pathDirectoryProject + " " + pathLogFile);
+			printProcessBash(process);
+			
+		    //El segundo parametro sirve para identificar el final del log generado al realizar pull.
 		    msgPull = validateLogExecution(pathLogFile, "pullEndFileLog.txt");
 						
 			System.out.println("Finalizando executorPullBASH(...)");
@@ -159,6 +216,7 @@ public class UtilGIT {
 
 	public String executorPushBASH(String pathDirectoryProject, String pathLogFile, String urlClone, String email, String user, String pass) {
 		Runtime runtime = Runtime.getRuntime();
+		Process process = null;
 		String msgPush = "";
 		
 		try {			
@@ -166,7 +224,17 @@ public class UtilGIT {
 
 			String[] tempUrlClone = urlClone.split("//");
 			String urlCloneGIT = tempUrlClone[0] + "//" + user + ":" + pass + "@" + tempUrlClone[1];
-		    Process p1 = runtime.exec("cmd /c start C:/Users/javier.perezb/Desktop/pushGit.sh " + urlCloneGIT + " " + email + " " + user + " " + pass + " " + pathLogFile + " " + pathDirectoryProject);
+			
+			if( operatingSystem.contains("win") ){
+				//Process p1 = runtime.exec("cmd /c start C:/Users/javier.perezb/Desktop/pushGit.sh " + urlCloneGIT + " " + email + " " + user + " " + pass + " " + pathLogFile + " " + pathDirectoryProject);
+				process = runtime.exec("cmd /c pushGit.sh " + urlCloneGIT + " " + email + " " + user + " " + pass + " " + pathLogFile + " " + pathDirectoryProject, null, new File(this.pathDirectoryBash));
+			}else {
+				process = runtime.exec("./pushGit.sh " + urlCloneGIT + " " + email + " " + user + " " + pass + " " + pathLogFile + " " + pathDirectoryProject, null, new File(this.pathDirectoryBash));
+			}
+			
+			printProcessBash(process);			
+						
+			//El segundo parametro sirve para identificar el final del log generado al realizar push.
 		    msgPush = this.validateLogExecution(pathLogFile, "pushEndFileLog.txt");
 						
 			System.out.println("Finalizando executorPushBASH(...)");
@@ -188,11 +256,9 @@ public class UtilGIT {
 			System.out.println("Iniciando executorPushBASH(...)");
 
 			msgPush = executorPushBASH(pathDirectoryProject, pathLogFile, urlClone, email, user, pass);
-			System.out.println("********** msgPush: " + msgPush + " ************");
 			
 			String msgStatus = this.executorStatusBASH(pathDirectoryProject, pathLogFile);
 			boolean conflicts = msgStatus.indexOf("conflicts") >= 0 ? true : false;
-			System.out.println("msgStatus: " + msgStatus);
 			
 			if( conflicts ) {
 				msgPush = msgStatus + " " + this.reloadTreeViewConflictedFiles(pathDirectoryProject, pathLogFile);
@@ -208,12 +274,22 @@ public class UtilGIT {
 
 	public String executorStatusBASH(String pathDirectoryProject, String pathLogFile) {
 		Runtime runtime = Runtime.getRuntime();
+		Process process = null;
 		String msgStatus = "";
 		
 		try {
 			System.out.println("Iniciando executorStatusBASH(...)");
 			
-		    Process p1 = runtime.exec("cmd /c start C:/Users/javier.perezb/Desktop/statusGit.sh " + pathDirectoryProject + " " + pathLogFile);		    
+			if( operatingSystem.contains("win") ){
+				//Process p1 = runtime.exec("cmd /c start C:/Users/javier.perezb/Desktop/statusGit.sh " + pathDirectoryProject + " " + pathLogFile);
+				process = runtime.exec("cmd /c statusGit.sh " + pathDirectoryProject + " " + pathLogFile, null, new File(this.pathDirectoryBash));
+			}else {
+				process = runtime.exec("./statusGit.sh " + pathDirectoryProject + " " + pathLogFile, null, new File(this.pathDirectoryBash));
+			}
+			
+			printProcessBash(process);
+		    
+			//El segundo parametro sirve para identificar el final del log generado al realizar status.
 		    msgStatus = this.validateLogExecution(pathLogFile, "statusEndFileLog.txt");
 			
 		    System.out.println("Finalizando executorStatusBASH(...)");
@@ -262,7 +338,8 @@ public class UtilGIT {
 					boolean isConflictedFile = sCurrentLine.indexOf("both modified") >= 0 ? true : false;
 					
 					if( isConflictedFile ) {
-						conflictedFiles.add(pathDirectoryProject.replace("\\", "\\\\")+"\\\\"+sCurrentLine.substring(sCurrentLine.indexOf(":")+1, sCurrentLine.length()).trim().replace("/", "\\\\"));
+						//conflictedFiles.add(pathDirectoryProject.replace("\\", "\\\\")+"\\\\"+sCurrentLine.substring(sCurrentLine.indexOf(":")+1, sCurrentLine.length()).trim().replace("/", "\\\\"));
+						conflictedFiles.add(pathDirectoryProject.replace(File.separator, DBL_FILE_SEPARATOR)+DBL_FILE_SEPARATOR+sCurrentLine.substring(sCurrentLine.indexOf(":")+1, sCurrentLine.length()).trim().replace("/", DBL_FILE_SEPARATOR));
 					}
 				}
 				
@@ -460,12 +537,15 @@ public class UtilGIT {
 		
 		try {			
 			if( isNewRdl.equals("true") ){
-				boolean existDirectory = this.existDirectory(pathDirectoryProject + "\\Rdl\\");
+				//boolean existDirectory = this.existDirectory(pathDirectoryProject + "\\Rdl\\");
+				boolean existDirectory = this.existDirectory(pathDirectoryProject + File.separator + "Rdl" + File.separator);
 				if( !existDirectory ){
-					this.createDirectory(pathDirectoryProject + "\\Rdl\\");
+					//this.createDirectory(pathDirectoryProject + "\\Rdl\\");
+					this.createDirectory(pathDirectoryProject + File.separator + "Rdl" + File.separator);
 				}
 				
-				pathFile = pathDirectoryProject + "\\Rdl\\" + pathFile;
+				//pathFile = pathDirectoryProject + "\\Rdl\\" + pathFile;
+				pathFile = pathDirectoryProject+ File.separator + "Rdl" + File.separator + pathFile;
 			}
 			
 			out = new PrintStream(new FileOutputStream(pathFile));
@@ -519,7 +599,9 @@ public class UtilGIT {
 			if( exist ){
 				msgClone = msgCloneBASH;
 			}else{
+				System.out.println("************************Iniciando armado de treeView.");
 				msgClone = msgCloneBASH + " " + this.uploadTreeView(pathDirectoryProject, null, null);
+				System.out.println("************************Finalizando armado de treeView. \n" + msgClone);
 			}
 		}
 

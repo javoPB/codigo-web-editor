@@ -8,6 +8,7 @@ import com.softtek.web.RdlWebSetup;
 import com.softtek.web.util.UtilGIT;
 import java.io.File;
 import java.io.IOException;
+import java.util.Calendar;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -58,13 +59,12 @@ public class RdlServlet extends XtextServlet {
     super.destroy();
   }
   
-  /**
-   * /
-   */
   @Override
   protected void service(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
     final String pathDirectoryProject = (((File.separator + "src") + File.separator) + "rdl-directory");
-    final String pathLogFile = (((((File.separator + "src") + File.separator) + "logs") + File.separator) + "log.txt");
+    long _timeInMillis = Calendar.getInstance().getTimeInMillis();
+    String _plus = ((((((File.separator + "src") + File.separator) + "logs") + File.separator) + "log-") + Long.valueOf(_timeInMillis));
+    final String pathLogFile = (_plus + ".txt");
     try {
       super.service(req, resp);
       final HttpServiceContext serviceContext = new HttpServiceContext(req);
@@ -133,47 +133,47 @@ public class RdlServlet extends XtextServlet {
       if (_t instanceof InvalidRequestException.ResourceNotFoundException) {
         final InvalidRequestException.ResourceNotFoundException exception = (InvalidRequestException.ResourceNotFoundException)_t;
         String _requestURI = req.getRequestURI();
-        String _plus = ("JPB 1 - Invalid request (" + _requestURI);
-        String _plus_1 = (_plus + "): ");
+        String _plus_1 = ("Invalid request (" + _requestURI);
+        String _plus_2 = (_plus_1 + "): ");
         String _message = exception.getMessage();
-        String _plus_2 = (_plus_1 + _message);
-        this.logg.trace(_plus_2);
+        String _plus_3 = (_plus_2 + _message);
+        this.logg.trace(_plus_3);
         resp.sendError(HttpServletResponse.SC_NOT_FOUND, exception.getMessage());
       } else if (_t instanceof InvalidRequestException.InvalidDocumentStateException) {
         final InvalidRequestException.InvalidDocumentStateException exception_1 = (InvalidRequestException.InvalidDocumentStateException)_t;
         String _requestURI_1 = req.getRequestURI();
-        String _plus_3 = ("JPB 2 - Invalid request (" + _requestURI_1);
-        String _plus_4 = (_plus_3 + "): ");
+        String _plus_4 = ("Invalid request (" + _requestURI_1);
+        String _plus_5 = (_plus_4 + "): ");
         String _message_1 = exception_1.getMessage();
-        String _plus_5 = (_plus_4 + _message_1);
-        this.logg.trace(_plus_5);
+        String _plus_6 = (_plus_5 + _message_1);
+        this.logg.trace(_plus_6);
         resp.sendError(HttpServletResponse.SC_CONFLICT, exception_1.getMessage());
       } else if (_t instanceof InvalidRequestException.PermissionDeniedException) {
         final InvalidRequestException.PermissionDeniedException exception_2 = (InvalidRequestException.PermissionDeniedException)_t;
         String _requestURI_2 = req.getRequestURI();
-        String _plus_6 = ("JPB 3 - Invalid request (" + _requestURI_2);
-        String _plus_7 = (_plus_6 + "): ");
+        String _plus_7 = ("Invalid request (" + _requestURI_2);
+        String _plus_8 = (_plus_7 + "): ");
         String _message_2 = exception_2.getMessage();
-        String _plus_8 = (_plus_7 + _message_2);
-        this.logg.trace(_plus_8);
+        String _plus_9 = (_plus_8 + _message_2);
+        this.logg.trace(_plus_9);
         resp.sendError(HttpServletResponse.SC_FORBIDDEN, exception_2.getMessage());
       } else if (_t instanceof InvalidRequestException) {
         final InvalidRequestException exception_3 = (InvalidRequestException)_t;
         String _requestURI_3 = req.getRequestURI();
-        String _plus_9 = ("JPB 4 - Invalid request (" + _requestURI_3);
-        String _plus_10 = (_plus_9 + "): ");
+        String _plus_10 = ("Invalid request (" + _requestURI_3);
+        String _plus_11 = (_plus_10 + "): ");
         String _message_3 = exception_3.getMessage();
-        String _plus_11 = (_plus_10 + _message_3);
-        this.logg.trace(_plus_11);
+        String _plus_12 = (_plus_11 + _message_3);
+        this.logg.trace(_plus_12);
         resp.sendError(HttpServletResponse.SC_BAD_REQUEST, exception_3.getMessage());
       } else if (_t instanceof Exception) {
         final Exception exception_4 = (Exception)_t;
         String _requestURI_4 = req.getRequestURI();
-        String _plus_12 = ("JPB 5 - Invalid request (" + _requestURI_4);
-        String _plus_13 = (_plus_12 + "): ");
+        String _plus_13 = ("Invalid request (" + _requestURI_4);
+        String _plus_14 = (_plus_13 + "): ");
         String _message_4 = exception_4.getMessage();
-        String _plus_14 = (_plus_13 + _message_4);
-        this.logg.trace(_plus_14);
+        String _plus_15 = (_plus_14 + _message_4);
+        this.logg.trace(_plus_15);
       } else {
         throw Exceptions.sneakyThrow(_t);
       }
